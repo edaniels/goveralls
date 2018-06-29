@@ -52,7 +52,13 @@ func collectGitInfo() *Git {
 		log.Fatal(err)
 	}
 	for key, args := range gitCmds {
-		if key == "branch" {
+		switch key {
+		case "id":
+			if envId := loadIdFromEnv(); envId != "" {
+				results[key] = envId
+				continue
+			}
+		case "branch":
 			if envBranch := loadBranchFromEnv(); envBranch != "" {
 				results[key] = envBranch
 				continue
@@ -103,6 +109,16 @@ func collectGitInfo() *Git {
 		g.Remotes = append(g.Remotes, &r)
 	}
 	return g
+}
+
+func loadIdFromEnv() string {
+	varNames := []string{"COVERALLS_GIT_COMMIT"}
+	for _, varName := range varNames {
+		if id := os.Getenv(varName); id != "" {
+			return id
+		}
+	}
+	return ""
 }
 
 func loadBranchFromEnv() string {
