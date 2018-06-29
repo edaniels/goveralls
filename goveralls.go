@@ -82,9 +82,11 @@ type Job struct {
 	ServiceJobId       string        `json:"service_job_id"`
 	ServicePullRequest string        `json:"service_pull_request,omitempty"`
 	ServiceName        string        `json:"service_name"`
+	ServiceNumber      string        `json:"service_number"`
 	SourceFiles        []*SourceFile `json:"source_files"`
 	Git                *Git          `json:"git,omitempty"`
 	RunAt              time.Time     `json:"run_at"`
+	Parallel           bool          `json:"parallel"`
 }
 
 // A Response is returned by the Coveralls.io API.
@@ -243,14 +245,17 @@ func process() error {
 	var jobId string
 	if travisJobId := os.Getenv("TRAVIS_JOB_ID"); travisJobId != "" {
 		jobId = travisJobId
-	} else if circleCiJobId := os.Getenv("CIRCLE_BUILD_NUM"); circleCiJobId != "" {
-		jobId = circleCiJobId
-	} else if appveyorJobId := os.Getenv("APPVEYOR_JOB_ID"); appveyorJobId != "" {
-		jobId = appveyorJobId
-	} else if semaphoreJobId := os.Getenv("SEMAPHORE_BUILD_NUMBER"); semaphoreJobId != "" {
-		jobId = semaphoreJobId
-	} else if jenkinsJobId := os.Getenv("BUILD_NUMBER"); jenkinsJobId != "" {
-		jobId = jenkinsJobId
+	}
+
+	var serviceNumber string
+	if travisServiceNumber := os.Getenv("TRAVIS_JOB_ID"); travisServiceNumber != "" {
+		serviceNumber = travisServiceNumber
+	} else if circleCiServiceNumber := os.Getenv("CIRCLE_BUILD_NUM"); circleCiServiceNumber != "" {
+		serviceNumber = circleCiServiceNumber
+	} else if semaphoreServiceNumber := os.Getenv("SEMAPHORE_BUILD_NUMBER"); semaphoreServiceNumber != "" {
+		serviceNumber = semaphoreServiceNumber
+	} else if jenkinsServiceNumber := os.Getenv("BUILD_NUMBER"); jenkinsServiceNumber != "" {
+		serviceNumber = jenkinsServiceNumber
 	}
 
 	if *repotoken == "" {
@@ -276,12 +281,22 @@ func process() error {
 		return err
 	}
 
+	var parallel bool
+	if parallelStr := os.Getenv("COVERALLS_PARALLEL"); parallelStr == "true" {
+		parallel = true
+	}
+
 	j := Job{
 		RunAt:              time.Now(),
 		RepoToken:          repotoken,
 		ServicePullRequest: pullRequest,
 		Git:                collectGitInfo(),
 		SourceFiles:        sourceFiles,
+		Parallel:           parallel,
+	}
+
+	if serviceNumber != "" {
+		j.ServiceNumber = serviceNumber
 	}
 
 	// Only include a job ID if it's known, otherwise, Coveralls looks
