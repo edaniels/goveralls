@@ -79,7 +79,7 @@ type SourceFile struct {
 // A Job represents the coverage data from a single run of a test suite.
 type Job struct {
 	RepoToken          *string       `json:"repo_token,omitempty"`
-	ServiceJobId       string        `json:"service_job_id"`
+	ServiceJobId       string        `json:"service_job_id,omitempty"`
 	ServicePullRequest string        `json:"service_pull_request,omitempty"`
 	ServiceName        string        `json:"service_name"`
 	ServiceNumber      string        `json:"service_number"`
@@ -299,11 +299,14 @@ func process() error {
 		j.ServiceNumber = serviceNumber
 	}
 
+	if service != nil {
+		j.ServiceName = *service
+	}
+
 	// Only include a job ID if it's known, otherwise, Coveralls looks
 	// for the job and can't find it.
 	if jobId != "" {
 		j.ServiceJobId = jobId
-		j.ServiceName = *service
 	}
 
 	// Ignore files
